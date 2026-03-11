@@ -1,0 +1,4 @@
+#include "resource.h"
+
+IDR_WAVE_LANGSOUND_NONDEFAULT WAVE "Sounds\\NonDefault.wav"
+IDR_WAVE_LANGSOUND_DEFAULT WAVE "Sounds\\Default.wav"
