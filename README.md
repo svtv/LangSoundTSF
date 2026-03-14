@@ -1,3 +1,4 @@
+[![MSBuild](https://github.com/svtv/LangSoundTSF/actions/workflows/msbuild.yml/badge.svg)](https://github.com/svtv/LangSoundTSF/actions/workflows/msbuild.yml)
 # LangSoundTSF
 
 Windows provides various ways to add audible feedback for state toggles (Caps Lock, Num Lock, etc.), but it does not provide a built-in sound for input language switching in multilingual setups. This project fills that gap by playing a short sound when the active input language changes.
