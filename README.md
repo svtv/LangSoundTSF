@@ -55,3 +55,4 @@ C:\Windows\System32\regsvr32.exe /u "full\path\to\LangSoundTSF.dll"
 
 - This project is an in-process COM server (TSF text service). The DLL may stay loaded while referenced by TSF-enabled processes.
 - If you modify embedded sounds, rebuild the DLL so resources are updated.
+- Known limitation: does not work in Windows Terminal (the TSF text service is not loaded by Terminal, so activation notifications are not received).

@@ -59,6 +59,52 @@ namespace
 			reinterpret_cast<void**>(profiles.ReleaseAndGetAddressOf()));
 	}
 
+	HRESULT CreateCategoryMgr(Microsoft::WRL::ComPtr<ITfCategoryMgr>& cat)
+	{
+		return CoCreateInstance(
+			CLSID_TF_CategoryMgr,
+			nullptr,
+			CLSCTX_INPROC_SERVER,
+			IID_ITfCategoryMgr,
+			reinterpret_cast<void**>(cat.ReleaseAndGetAddressOf()));
+	}
+
+	void CleanupLegacyCategories(ITfCategoryMgr* cat)
+	{
+		if (!cat)
+			return;
+		cat->UnregisterCategory(CLSID_LangSound, GUID_TFCAT_TIPCAP_IMMERSIVESUPPORT, CLSID_LangSound);
+		cat->UnregisterCategory(CLSID_LangSound, GUID_TFCAT_TIP_KEYBOARD, CLSID_LangSound);
+	}
+
+	HRESULT RegisterKeyboardTipCategories(ITfCategoryMgr* cat, const std::vector<LANGID>& langs)
+	{
+		if (!cat)
+			return E_POINTER;
+
+		HRESULT hrFinal = S_OK;
+		for (const LANGID langId : langs)
+		{
+			const GUID profileGuid = GetProfileGuidForLang(langId);
+			const HRESULT hr = cat->RegisterCategory(CLSID_LangSound, GUID_TFCAT_TIP_KEYBOARD, profileGuid);
+			if (FAILED(hr) && hr != TF_E_ALREADY_EXISTS)
+				hrFinal = hr;
+		}
+		return hrFinal;
+	}
+
+	void UnregisterKeyboardTipCategories(ITfCategoryMgr* cat, const std::vector<LANGID>& langs)
+	{
+		if (!cat)
+			return;
+		for (const LANGID langId : langs)
+		{
+			const GUID profileGuid = GetProfileGuidForLang(langId);
+			cat->UnregisterCategory(CLSID_LangSound, GUID_TFCAT_TIP_KEYBOARD, profileGuid);
+			cat->UnregisterCategory(CLSID_LangSound, GUID_TFCAT_TIPCAP_IMMERSIVESUPPORT, profileGuid);
+		}
+	}
+
 	std::vector<LANGID> GetUniqueLangIdsFromInstalledKeyboardLayouts()
 	{
 		const int count = GetKeyboardLayoutList(0, nullptr);
@@ -174,7 +220,9 @@ extern "C" HRESULT STDAPICALLTYPE DllRegisterServer()
 	const CoInitScope com(COINIT_APARTMENTTHREADED);
 	HRESULT hr = com.hr;
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	hr = RegisterComServer();
 	if (FAILED(hr))
@@ -196,6 +244,12 @@ extern "C" HRESULT STDAPICALLTYPE DllRegisterServer()
 	{
 		(void)UnregisterComServer();
 		return hr;
+	}
+
+	Microsoft::WRL::ComPtr<ITfCategoryMgr> cat;
+	if (SUCCEEDED(CreateCategoryMgr(cat)))
+	{
+		CleanupLegacyCategories(cat.Get());
 	}
 
 	WCHAR modulePath[MAX_PATH] = {};
@@ -255,6 +309,12 @@ extern "C" HRESULT STDAPICALLTYPE DllRegisterServer()
 		return hr;
 	}
 
+	if (cat)
+	{
+		const HRESULT hrCat = RegisterKeyboardTipCategories(cat.Get(), langs);
+		(void)hrCat;
+	}
+
 	return hr;
 }
 
@@ -278,6 +338,13 @@ extern "C" HRESULT STDAPICALLTYPE DllUnregisterServer()
 	}
 
 	const std::vector<LANGID> langs = GetUniqueLangIdsFromInstalledKeyboardLayouts();
+
+	Microsoft::WRL::ComPtr<ITfCategoryMgr> cat;
+	if (SUCCEEDED(CreateCategoryMgr(cat)))
+	{
+		CleanupLegacyCategories(cat.Get());
+		UnregisterKeyboardTipCategories(cat.Get(), langs);
+	}
 
 	for (const LANGID langId : langs)
 	{
