@@ -50,17 +50,6 @@ From an elevated Command Prompt:
 C:\Windows\System32\regsvr32.exe /u "full\path\to\LangSoundTSF.dll"
 ```
 
-## Debugging
-
-### LangSoundHost
-
-`LangSoundHost` is a small helper application for testing and debugging without relying on full system integration.
-
-Typical workflow:
-
-- Build `LangSoundHost`.
-- Run it and use the hotkeys printed in its console output to switch between default and non-default input languages.
-
 ## Notes
 
 - This project is an in-process COM server (TSF text service). The DLL may stay loaded while referenced by TSF-enabled processes.

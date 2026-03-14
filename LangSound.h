@@ -32,8 +32,9 @@ private:
 	LONG _refCount;
 
 	Microsoft::WRL::ComPtr<ITfThreadMgr> _threadMgr;
+	Microsoft::WRL::ComPtr<ITfInputProcessorProfiles> _profiles;
 	TfClientId _clientId;
 	DWORD _sinkCookie;
 
-	std::optional<LANGID> _lastLangId;
+	std::optional<GUID> _lastProfileGuid;
 };

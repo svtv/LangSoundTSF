@@ -10,7 +10,7 @@ LangSound::LangSound()
 	: _refCount(1)
 	, _clientId(0)
 	, _sinkCookie(TF_INVALID_COOKIE)
-	, _lastLangId(std::nullopt)
+	, _lastProfileGuid(std::nullopt)
 {
 	_threadMgr.Reset();
 
@@ -63,6 +63,15 @@ HRESULT LangSound::Activate(ITfThreadMgr* ptim, TfClientId tid)
 	_threadMgr = ptim;
 	_clientId = tid;
 
+	const HRESULT hrProfiles = CoCreateInstance(
+		CLSID_TF_InputProcessorProfiles,
+		nullptr,
+		CLSCTX_INPROC_SERVER,
+		IID_ITfInputProcessorProfiles,
+		reinterpret_cast<void**>(_profiles.ReleaseAndGetAddressOf()));
+	if (FAILED(hrProfiles))
+		_profiles.Reset();
+
 	Microsoft::WRL::ComPtr<ITfSource> source;
 	if (SUCCEEDED(_threadMgr.As(&source)))
 	{
@@ -92,19 +101,31 @@ HRESULT LangSound::Deactivate()
 		}
 
 		_threadMgr.Reset();
+		_profiles.Reset();
 	}
 
 	return S_OK;
 }
 
-HRESULT LangSound::OnActivated(REFCLSID, REFGUID, BOOL activated)
+HRESULT LangSound::OnActivated(REFCLSID clsid, REFGUID guidProfile, BOOL activated)
 {
 	if (!activated)
 		return S_OK;
 
-	HKL layout = GetKeyboardLayout(0);
-	LANGID lang =
-		LOWORD(reinterpret_cast<DWORD_PTR>(layout));
+	if (!IsEqualGUID(clsid, CLSID_LangSound))
+		return S_OK;
+
+	LANGID lang = 0;
+	if (_profiles)
+	{
+		GUID activeGuid = {};
+		(void)_profiles->GetActiveLanguageProfile(CLSID_LangSound, &lang, &activeGuid);
+	}
+	if (lang == 0)
+	{
+		const HKL layout = GetKeyboardLayout(0);
+		lang = LOWORD(reinterpret_cast<DWORD_PTR>(layout));
+	}
 
 	HKL defaultLayout = nullptr;
 	LANGID defaultLang;
@@ -113,39 +134,28 @@ HRESULT LangSound::OnActivated(REFCLSID, REFGUID, BOOL activated)
 	else
 		defaultLang = lang;
 
-	if (!_lastLangId.has_value())
+	if (!_lastProfileGuid.has_value())
 	{
-		_lastLangId = defaultLang;
+		_lastProfileGuid = guidProfile;
 		return S_OK;
 	}
 
-	if (lang == *_lastLangId)
+	if (IsEqualGUID(*_lastProfileGuid, guidProfile))
 		return S_OK;
 
-	if (lang != defaultLang)
-	{
-		PlaySoundW(
-			MAKEINTRESOURCEW(IDR_WAVE_LANGSOUND_NONDEFAULT),
-			g_hInst,
-			SND_RESOURCE |
+	const int soundResId = (lang != defaultLang)
+		? IDR_WAVE_LANGSOUND_NONDEFAULT
+		: IDR_WAVE_LANGSOUND_DEFAULT;
+	PlaySoundW(
+		MAKEINTRESOURCEW(soundResId),
+		g_hInst,
+		SND_RESOURCE |
 			SND_ASYNC |
 			SND_NODEFAULT |
 			SND_SENTRY |
 			SND_SYSTEM);
-	}
-	else
-	{
-		PlaySoundW(
-			MAKEINTRESOURCEW(IDR_WAVE_LANGSOUND_DEFAULT),
-			g_hInst,
-			SND_RESOURCE |
-			SND_ASYNC |
-			SND_NODEFAULT |
-			SND_SENTRY |
-			SND_SYSTEM);
-	}
 
-	_lastLangId = lang;
+	_lastProfileGuid = guidProfile;
 
 	return S_OK;
 }

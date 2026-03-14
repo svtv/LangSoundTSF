@@ -1,4 +1,33 @@
 #include "resource.h"
 
+#include <winres.h>
+
 IDR_WAVE_LANGSOUND_NONDEFAULT WAVE "Sounds\\NonDefault.wav"
 IDR_WAVE_LANGSOUND_DEFAULT WAVE "Sounds\\Default.wav"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,1,0
+ PRODUCTVERSION 1,0,1,0
+ FILEFLAGSMASK 0x3FL
+ FILEFLAGS 0x0L
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription", "LangSoundTSF"
+            VALUE "FileVersion", "1.0.1.0"
+            VALUE "InternalName", "LangSoundTSF"
+            VALUE "OriginalFilename", "LangSoundTSF.dll"
+            VALUE "ProductName", "LangSoundTSF"
+            VALUE "ProductVersion", "1.0.1.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END
